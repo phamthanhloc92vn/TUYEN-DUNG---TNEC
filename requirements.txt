@@ -1,0 +1,10 @@
+customtkinter
+openai
+pandas
+pdfplumber
+docx2txt
+openpyxl
+python-dotenv
+tiktoken
+pymupdf
+pillow
