@@ -5,13 +5,15 @@ from .ai_client import AIClient
 class CVScorer:
     def __init__(self):
         self.reader = FileReader()
-        self.ai = AIClient()
 
-    def evaluate_cv(self, cv_file_path: str, jd_text: str) -> dict:
+    def evaluate_cv(self, cv_file_path: str, jd_text: str, api_key: str = None) -> dict:
         """
         Orchestrates the scoring process.
         """
         try:
+            # Init AI Client with optional key
+            ai = AIClient(api_key)
+
             # Step 1: Read File (Returns Dict now)
             print(f"Reading file: {cv_file_path}...")
             cv_data = self.reader.read_file(cv_file_path)
@@ -27,7 +29,7 @@ class CVScorer:
 
             # Step 2: Call AI (Pass Dict)
             print("Analyzing with AI..." + (" (Vision Mode)" if cv_data.get("is_scanned") else ""))
-            json_response = self.ai.get_score(cv_data, jd_text)
+            json_response = ai.get_score(cv_data, jd_text)
             
             # Step 3: Parse JSON
             clean_json = json_response.replace('```json', '').replace('```', '').strip()

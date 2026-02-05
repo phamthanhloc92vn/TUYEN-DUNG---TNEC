@@ -48,21 +48,25 @@ class CVScorerApp(ctk.CTk):
         self.jd_textbox.grid(row=2, column=0, padx=20, pady=(5, 10), sticky="nsew")
         self.jd_textbox.insert("0.0", "Paste Job Description vào đây...")
 
+        # API Key Input
+        self.api_key_entry = ctk.CTkEntry(self.sidebar_frame, placeholder_text="Nhập OpenAI API Key...", show="*")
+        self.api_key_entry.grid(row=3, column=0, padx=20, pady=(10, 0), sticky="ew")
+
         # Folder Selection
         self.folder_btn = ctk.CTkButton(self.sidebar_frame, text="Chọn Thư Mục CV", 
                                       command=self.browse_folder)
-        self.folder_btn.grid(row=3, column=0, padx=20, pady=10)
+        self.folder_btn.grid(row=4, column=0, padx=20, pady=10)
         
         self.folder_path_label = ctk.CTkLabel(self.sidebar_frame, text="Chưa chọn thư mục", 
                                             text_color="gray", wraplength=200)
-        self.folder_path_label.grid(row=4, column=0, padx=20, pady=(0, 10), sticky="n")
+        self.folder_path_label.grid(row=5, column=0, padx=20, pady=(0, 10), sticky="n")
 
         # Start Button
         self.start_btn = ctk.CTkButton(self.sidebar_frame, text="BẮT ĐẦU CHẤM ĐIỂM", 
                                      fg_color="green", hover_color="darkgreen",
                                      height=50, font=ctk.CTkFont(size=15, weight="bold"),
                                      command=self.start_scoring)
-        self.start_btn.grid(row=5, column=0, padx=20, pady=20, sticky="s")
+        self.start_btn.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
     def _setup_main_area(self):
         """Tạo khu vực hiển thị kết quả bên phải"""
@@ -106,6 +110,15 @@ class CVScorerApp(ctk.CTk):
             messagebox.showwarning("Thiếu thông tin", "Vui lòng chọn thư mục chứa CV.")
             return
 
+        # Get API Key
+        api_key = self.api_key_entry.get().strip()
+        if not api_key:
+            # Check env
+            if not os.getenv("OPENAI_API_KEY"):
+                 messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập API Key để tiếp tục!")
+                 return
+            api_key = None # Let AIClient load from env
+
         # Prepare UI
         self.is_processing = True
         self.start_btn.configure(state="disabled", text="Đang xử lý...")
@@ -116,10 +129,10 @@ class CVScorerApp(ctk.CTk):
             widget.destroy()
 
         # Start Thread
-        t = threading.Thread(target=self._process_files, args=(jd_text,))
+        t = threading.Thread(target=self._process_files, args=(jd_text, api_key))
         t.start()
 
-    def _process_files(self, jd_text):
+    def _process_files(self, jd_text, api_key):
         files = [f for f in os.listdir(self.selected_folder) 
                  if f.lower().endswith(('.pdf', '.docx', '.txt', '.png', '.jpg', '.jpeg'))]
         
@@ -133,7 +146,7 @@ class CVScorerApp(ctk.CTk):
             filepath = os.path.join(self.selected_folder, filename)
             
             # Call Core Logic
-            result = self.scorer.evaluate_cv(filepath, jd_text)
+            result = self.scorer.evaluate_cv(filepath, jd_text, api_key=api_key)
             
             # Prepare data for UI
             display_data = {
