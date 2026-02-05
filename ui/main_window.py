@@ -172,20 +172,13 @@ class CVScorerApp(ctk.CTk):
                             fg_color="gray", corner_radius=20)
         avatar.pack(side="left", padx=10, pady=10)
 
-        # 2. Info (Name + Status)
-        info_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
-        info_frame.pack(side="left", fill="both", expand=True, padx=5)
-        
-        name_label = ctk.CTkLabel(info_frame, text=data["name"], 
-                                font=ctk.CTkFont(size=14, weight="bold"), anchor="w")
-        name_label.pack(fill="x")
-        
-        # Status Label small under name
-        status_label = ctk.CTkLabel(info_frame, text=f"• {data['status']}", 
-                                  font=ctk.CTkFont(size=12), text_color="silver", anchor="w")
-        status_label.pack(fill="x")
+        # 2. View Details Button (Right) - Pack FIRST to reserve space
+        detail_btn = ctk.CTkButton(row_frame, text="📄 Chi tiết", width=80, height=30,
+                                 fg_color="#34495e", hover_color="#2c3e50",
+                                 command=lambda: self.show_details_popup(data))
+        detail_btn.pack(side="right", padx=10)
 
-        # 3. Score Badge (Big & Colored)
+        # 3. Score Badge (Right) - Pack SECOND to reserve space
         score_val = data["score"]
         score_color = self._get_score_color(score_val)
         
@@ -199,12 +192,19 @@ class CVScorerApp(ctk.CTk):
         score_sub = ctk.CTkLabel(score_frame, text="/100", font=ctk.CTkFont(size=10), text_color="gray")
         score_sub.pack(anchor="e")
 
-        # 4. View Details Button
-        detail_btn = ctk.CTkButton(row_frame, text="📄 Chi tiết", width=80, height=30,
-                                 fg_color="#34495e", hover_color="#2c3e50",
-                                 command=lambda: self.show_details_popup(data))
-        detail_btn.pack(side="right", padx=10)
-
+        # 4. Info (Name + Status) - Pack LAST to fill remaining space
+        info_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
+        info_frame.pack(side="left", fill="both", expand=True, padx=5)
+        
+        name_label = ctk.CTkLabel(info_frame, text=data["name"], 
+                                font=ctk.CTkFont(size=14, weight="bold"), anchor="w")
+        name_label.pack(fill="x")
+        
+        # Display Summary instead of just Status for better context, truncated
+        summary_text = data["summary"].split('\n')[0][:100] + "..." if len(data["summary"]) > 100 else data["summary"].split('\n')[0]
+        status_label = ctk.CTkLabel(info_frame, text=f"• {summary_text}", 
+                                  font=ctk.CTkFont(size=12), text_color="silver", anchor="w")
+        status_label.pack(fill="x")
     def show_details_popup(self, data):
         """Hiển thị cửa sổ chi tiết (Toplevel)"""
         toplevel = ctk.CTkToplevel(self)
