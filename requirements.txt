@@ -3,7 +3,8 @@ openai
 pandas
 pdfplumber
 docx2txt
-openpyxl
+gspread
+google-auth
 python-dotenv
 tiktoken
 pymupdf

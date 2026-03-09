@@ -88,3 +88,5 @@ Hoàn thiện trải nghiệm và tính ổn định.
 
 ---
 *Created by AI Agent (Role: Software Architect)*
+python main.py
+

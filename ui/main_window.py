@@ -1,279 +1,460 @@
 import customtkinter as ctk
 import os
 import threading
-from tkinter import filedialog, messagebox
+import webbrowser
+import json
+from tkinter import messagebox, filedialog
 from core.scorer import CVScorer
+from core.config_manager import ConfigManager
+from utils.process_cv_to_sheets import process_cv_to_sheets, batch_process
 
 # Cấu hình giao diện chung
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
+
+NGUON_OPTIONS = ["TopCV", "LinkedIn", "Email", "Referral", "Khác"]
+MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "o1-preview", "o1-mini"]
+
+
+class SettingsPopup(ctk.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("⚙️ Cài đặt cấu hình")
+        self.geometry("500x450")
+        self.attributes("-topmost", True)
+        
+        self.grid_columnconfigure(0, weight=1)
+        self.padx = 20
+        
+        # Load current config
+        self.config = ConfigManager.load_config()
+        
+        # UI elements
+        row = 0
+        ctk.CTkLabel(self, text="CẤU HÌNH HỆ THỐNG", font=ctk.CTkFont(size=16, weight="bold")
+                    ).grid(row=row, column=0, pady=(20, 10)); row += 1
+        
+        # API Key
+        ctk.CTkLabel(self, text="OpenAI API Key:", anchor="w").grid(row=row, column=0, padx=self.padx, sticky="w"); row += 1
+        self.api_entry = ctk.CTkEntry(self, placeholder_text="sk-...", show="*", width=400)
+        self.api_entry.insert(0, self.config.get("openai_api_key", ""))
+        self.api_entry.grid(row=row, column=0, padx=self.padx, pady=(0, 10)); row += 1
+        
+        # Model
+        ctk.CTkLabel(self, text="Model ChatGPT:", anchor="w").grid(row=row, column=0, padx=self.padx, sticky="w"); row += 1
+        self.model_var = ctk.StringVar(value=self.config.get("openai_model", "gpt-4o-mini"))
+        self.model_menu = ctk.CTkOptionMenu(self, values=MODEL_OPTIONS, variable=self.model_var, width=400)
+        self.model_menu.grid(row=row, column=0, padx=self.padx, pady=(0, 10)); row += 1
+        
+        # Webhook URL
+        ctk.CTkLabel(self, text="Google Apps Script URL:", anchor="w").grid(row=row, column=0, padx=self.padx, sticky="w"); row += 1
+        self.url_entry = ctk.CTkEntry(self, placeholder_text="https://script.google.com/...", width=400)
+        self.url_entry.insert(0, self.config.get("apps_script_url", ""))
+        self.url_entry.grid(row=row, column=0, padx=self.padx, pady=(0, 10)); row += 1
+        
+        # Save Button
+        self.save_btn = ctk.CTkButton(self, text="LƯU CẤU HÌNH", fg_color="#2ecc71", hover_color="#27ae60",
+                                     command=self.save_and_close)
+        self.save_btn.grid(row=row, column=0, pady=20); row += 1
+
+    def save_and_close(self):
+        new_config = {
+            "openai_api_key": self.api_entry.get().strip(),
+            "openai_model": self.model_var.get(),
+            "apps_script_url": self.url_entry.get().strip()
+        }
+        ConfigManager.save_config(new_config)
+        messagebox.showinfo("Thành công", "Đã lưu cấu hình thành công!")
+        self.destroy()
+
+
+class DetailPopup(ctk.CTkToplevel):
+    """Popup hiển thị chi tiết chấm điểm CV."""
+    def __init__(self, parent, data: dict):
+        super().__init__(parent)
+        info = data.get("row_appended", {})
+        name = info.get("ten_ung_vien", "N/A")
+        self.title(f"📋 Chi tiết: {name}")
+        self.geometry("520x560")
+        self.attributes("-topmost", True)
+        self.grid_columnconfigure(0, weight=1)
+
+        score = data.get("score", 0)
+        matching = data.get("matching_skills", [])
+        missing  = data.get("missing_skills", [])
+        summary  = data.get("summary", "")
+        rec      = data.get("recommendation", "")
+        success  = data.get("success", False)
+
+        row = 0
+        # Header
+        ctk.CTkLabel(self, text=name, font=ctk.CTkFont(size=16, weight="bold")
+                     ).grid(row=row, column=0, pady=(16, 2), padx=20, sticky="w"); row += 1
+        vi_tri = info.get("vi_tri", "N/A")
+        khu_vuc = info.get("khu_vuc", "N/A")
+        sdt = info.get("sdt", "N/A")
+        ctk.CTkLabel(self, text=f"{vi_tri}  |  {khu_vuc}  |  📞 {sdt}",
+                     font=ctk.CTkFont(size=11), text_color="gray"
+                     ).grid(row=row, column=0, padx=20, sticky="w"); row += 1
+
+        # Score bar
+        score_color = "#2ecc71" if score >= 75 else ("#f1c40f" if score >= 50 else "#e74c3c")
+        ctk.CTkLabel(self, text=f"Điểm phù hợp: {score}/100",
+                     font=ctk.CTkFont(size=14, weight="bold"), text_color=score_color
+                     ).grid(row=row, column=0, padx=20, pady=(12, 2), sticky="w"); row += 1
+        bar = ctk.CTkProgressBar(self, progress_color=score_color)
+        bar.set(score / 100)
+        bar.grid(row=row, column=0, padx=20, sticky="ew", pady=(0, 10)); row += 1
+
+        # Recommendation
+        rec_colors = {"Interview": "#2ecc71", "Hold": "#f1c40f", "Reject": "#e74c3c", "Error": "gray"}
+        rec_color = rec_colors.get(rec, "gray")
+        ctk.CTkLabel(self, text=f"Khuyến nghị: {rec}",
+                     font=ctk.CTkFont(size=12, weight="bold"), text_color=rec_color
+                     ).grid(row=row, column=0, padx=20, sticky="w"); row += 1
+
+        # Matching skills
+        ctk.CTkLabel(self, text="✅ Kỹ năng tương thích:",
+                     font=ctk.CTkFont(size=12, weight="bold"), text_color="#2ecc71"
+                     ).grid(row=row, column=0, padx=20, pady=(12, 2), sticky="w"); row += 1
+        match_text = "  •  ".join(matching) if matching else "(Không có)"
+        ctk.CTkLabel(self, text=match_text, wraplength=460, justify="left",
+                     font=ctk.CTkFont(size=11), anchor="w"
+                     ).grid(row=row, column=0, padx=28, sticky="w"); row += 1
+
+        # Missing skills
+        ctk.CTkLabel(self, text="❌ Kỹ năng chưa tương thích:",
+                     font=ctk.CTkFont(size=12, weight="bold"), text_color="#e74c3c"
+                     ).grid(row=row, column=0, padx=20, pady=(10, 2), sticky="w"); row += 1
+        miss_text = "  •  ".join(missing) if missing else "(Không có)"
+        ctk.CTkLabel(self, text=miss_text, wraplength=460, justify="left",
+                     font=ctk.CTkFont(size=11), anchor="w"
+                     ).grid(row=row, column=0, padx=28, sticky="w"); row += 1
+
+        # Summary
+        ctk.CTkLabel(self, text="📝 Nhận xét AI:",
+                     font=ctk.CTkFont(size=12, weight="bold")
+                     ).grid(row=row, column=0, padx=20, pady=(10, 2), sticky="w"); row += 1
+        summary_box = ctk.CTkTextbox(self, height=90, wrap="word", font=ctk.CTkFont(size=11))
+        summary_box.insert("0.0", summary)
+        summary_box.configure(state="disabled")
+        summary_box.grid(row=row, column=0, padx=20, sticky="ew", pady=(0, 8)); row += 1
+
+        # Sheets status
+        sheet_status = "✅ Đã ghi Sheets" if success else "⚠️ Chưa ghi Sheets"
+        sheet_color  = "#2ecc71" if success else "#e74c3c"
+        ctk.CTkLabel(self, text=sheet_status, text_color=sheet_color,
+                     font=ctk.CTkFont(size=11)
+                     ).grid(row=row, column=0, padx=20, pady=(0, 16), sticky="w")
+
 
 class CVScorerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         # --- CẤU HÌNH WINDOW ---
-        self.title("AI CV Scorer - Vibe Coding Version (Enhanced)")
-        self.geometry("1100x700")
-        
-        # Grid Layout: 2 cột (Sidebar 1 phần, Main Content 3 phần)
+        self.title("TNEC-HR – Auto to Google Sheets")
+        self.geometry("1200x800")
+
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         # --- KHỞI TẠO LOGIC ---
-        self.scorer = CVScorer()
         self.selected_folder = ""
         self.is_processing = False
+        self.results_data = []
+        
+        # Load config to get default API key if any
+        self.config = ConfigManager.load_config()
 
         # --- UI COMPONENTS ---
         self._setup_sidebar()
         self._setup_main_area()
 
+    # ──────────────────────────────────────────────────────────────────
+    # SIDEBAR
+    # ──────────────────────────────────────────────────────────────────
     def _setup_sidebar(self):
-        """Tạo sidebar bên trái chứa cấu hình"""
-        self.sidebar_frame = ctk.CTkFrame(self, width=250, corner_radius=0)
+        self.sidebar_frame = ctk.CTkFrame(self, width=280, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(4, weight=1)
+        self.sidebar_frame.grid_propagate(False)
+
+        row = 0
 
         # Title
-        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="AI CV SCORER", 
-                                     font=ctk.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        ctk.CTkLabel(
+            self.sidebar_frame, text="🤖 TNEC-HR",
+            font=ctk.CTkFont(size=18, weight="bold")
+        ).grid(row=row, column=0, padx=20, pady=(20, 2), sticky="w"); row += 1
 
-        # JD Input
-        self.jd_label = ctk.CTkLabel(self.sidebar_frame, text="Mô tả công việc (JD):", anchor="w")
-        self.jd_label.grid(row=1, column=0, padx=20, pady=(10, 0), sticky="w")
-        
+        ctk.CTkLabel(
+            self.sidebar_frame, text="Automation Pipeline",
+            font=ctk.CTkFont(size=11), text_color="gray"
+        ).grid(row=row, column=0, padx=20, pady=(0, 15), sticky="w"); row += 1
+
+        # ── JD Input ─────────────────────────────────────────────────
+        ctk.CTkLabel(self.sidebar_frame, text="📋 Mô tả công việc (JD):", anchor="w"
+                     ).grid(row=row, column=0, padx=20, pady=(8, 0), sticky="w"); row += 1
+
         self.jd_textbox = ctk.CTkTextbox(self.sidebar_frame, height=200)
-        self.jd_textbox.grid(row=2, column=0, padx=20, pady=(5, 10), sticky="nsew")
+        self.jd_textbox.grid(row=row, column=0, padx=20, pady=(4, 12), sticky="ew"); row += 1
         self.jd_textbox.insert("0.0", "Paste Job Description vào đây...")
 
-        # API Key Input
-        self.api_key_entry = ctk.CTkEntry(self.sidebar_frame, placeholder_text="Nhập OpenAI API Key...", show="*")
-        self.api_key_entry.grid(row=3, column=0, padx=20, pady=(10, 0), sticky="ew")
+        # ── Nguồn CV ─────────────────────────────────────────────────
+        ctk.CTkLabel(self.sidebar_frame, text="🌐 Nguồn CV:", anchor="w"
+                     ).grid(row=row, column=0, padx=20, pady=(4, 0), sticky="w"); row += 1
+        self.nguon_var = ctk.StringVar(value="TopCV")
+        self.nguon_dropdown = ctk.CTkOptionMenu(
+            self.sidebar_frame, values=NGUON_OPTIONS, variable=self.nguon_var
+        )
+        self.nguon_dropdown.grid(row=row, column=0, padx=20, pady=(4, 12), sticky="ew"); row += 1
 
-        # Folder Selection
-        self.folder_btn = ctk.CTkButton(self.sidebar_frame, text="Chọn Thư Mục CV", 
-                                      command=self.browse_folder)
-        self.folder_btn.grid(row=4, column=0, padx=20, pady=10)
-        
-        self.folder_path_label = ctk.CTkLabel(self.sidebar_frame, text="Chưa chọn thư mục", 
-                                            text_color="gray", wraplength=200)
-        self.folder_path_label.grid(row=5, column=0, padx=20, pady=(0, 10), sticky="n")
+        # ── Chọn thư mục CV ───────────────────────────────────────────
+        self.folder_btn = ctk.CTkButton(
+            self.sidebar_frame, text="📁 Chọn Thư Mục CV",
+            command=self.browse_folder
+        )
+        self.folder_btn.grid(row=row, column=0, padx=20, pady=(15, 4)); row += 1
 
-        # Start Button
-        self.start_btn = ctk.CTkButton(self.sidebar_frame, text="BẮT ĐẦU CHẤM ĐIỂM", 
-                                     fg_color="green", hover_color="darkgreen",
-                                     height=50, font=ctk.CTkFont(size=15, weight="bold"),
-                                     command=self.start_scoring)
-        self.start_btn.grid(row=6, column=0, padx=20, pady=20, sticky="s")
+        self.folder_path_label = ctk.CTkLabel(
+            self.sidebar_frame, text="Chưa chọn thư mục",
+            text_color="gray", wraplength=230, font=ctk.CTkFont(size=11)
+        )
+        self.folder_path_label.grid(row=row, column=0, padx=20, pady=(0, 15)); row += 1
 
+        # ── Start Button ──────────────────────────────────────────────
+        self.start_btn = ctk.CTkButton(
+            self.sidebar_frame,
+            text="🚀 BẮT ĐẦU CHẤM & GHI SHEETS",
+            fg_color="#2ecc71", hover_color="#27ae60",
+            height=48, font=ctk.CTkFont(size=14, weight="bold"),
+            command=self.start_scoring
+        )
+        self.start_btn.grid(row=row, column=0, padx=20, pady=(10, 10), sticky="ew"); row += 1
+
+        # Bottom Frame for Settings & Link
+        bottom_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
+        bottom_frame.grid(row=row, column=0, padx=20, pady=(20, 10), sticky="sew"); row += 1
+        bottom_frame.grid_columnconfigure((0, 1), weight=1)
+
+        self.settings_btn = ctk.CTkButton(
+            bottom_frame, text="⚙️ Cài đặt", width=100,
+            fg_color="#34495e", hover_color="#2c3e50",
+            command=self.open_settings
+        )
+        self.settings_btn.grid(row=0, column=0, padx=(0, 5))
+
+        self.open_sheet_btn = ctk.CTkButton(
+            bottom_frame, text="🔗 Mở Sheets", width=100,
+            fg_color="#1a73e8", hover_color="#1558b0",
+            command=self.open_sheet
+        )
+        self.open_sheet_btn.grid(row=0, column=1, padx=(5, 0))
+
+    # ──────────────────────────────────────────────────────────────────
+    # MAIN AREA
+    # ──────────────────────────────────────────────────────────────────
     def _setup_main_area(self):
-        """Tạo khu vực hiển thị kết quả bên phải"""
         self.main_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.main_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
         self.main_frame.grid_rowconfigure(1, weight=1)
         self.main_frame.grid_columnconfigure(0, weight=1)
 
-        # Header Area
-        self.header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        self.header_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
-        
-        self.title_label = ctk.CTkLabel(self.header_frame, text="Kết Quả Đánh Giá", 
-                                      font=ctk.CTkFont(size=24, weight="bold"))
-        self.title_label.pack(side="left")
+        # Header
+        header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        self.progress_bar = ctk.CTkProgressBar(self.header_frame, orientation="horizontal")
+        ctk.CTkLabel(
+            header_frame, text="Kết Quả Phân Tích",
+            font=ctk.CTkFont(size=22, weight="bold")
+        ).pack(side="left")
+
+        self.progress_bar = ctk.CTkProgressBar(header_frame)
         self.progress_bar.pack(side="right", fill="x", expand=True, padx=(20, 0))
         self.progress_bar.set(0)
 
-        # Result Table (Scrollable)
-        self.result_scroll = ctk.CTkScrollableFrame(self.main_frame, label_text="Danh Sách Ứng Viên")
+        self.progress_label = ctk.CTkLabel(
+            header_frame, text="", font=ctk.CTkFont(size=11), text_color="gray"
+        )
+        self.progress_label.pack(side="right", padx=(0, 10))
+
+        # Scrollable results
+        self.result_scroll = ctk.CTkScrollableFrame(
+            self.main_frame, label_text="Danh Sách Ứng Viên"
+        )
         self.result_scroll.grid(row=1, column=0, sticky="nsew")
-        
+
+        # Status bar
+        self.status_label = ctk.CTkLabel(
+            self.main_frame, text="Sẵn sàng.",
+            font=ctk.CTkFont(size=11), text_color="gray", anchor="w"
+        )
+        self.status_label.grid(row=2, column=0, sticky="ew", pady=(6, 0))
+
+    # ──────────────────────────────────────────────────────────────────
+    # ACTIONS
+    # ──────────────────────────────────────────────────────────────────
+    def open_settings(self):
+        SettingsPopup(self)
+
     def browse_folder(self):
         folder = filedialog.askdirectory()
         if folder:
             self.selected_folder = folder
-            self.folder_path_label.configure(text=os.path.basename(folder), text_color="white")
+            self.folder_path_label.configure(
+                text=os.path.basename(folder), text_color="white"
+            )
 
     def start_scoring(self):
         if self.is_processing:
             return
 
+        # Reload config per run to ensure latest settings are used
+        config = ConfigManager.load_config()
+        
         jd_text = self.jd_textbox.get("1.0", "end-1c").strip()
-        if len(jd_text) < 50:
-            messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập JD (ít nhất 50 ký tự).")
-            return
-            
+        nguon = self.nguon_var.get()
+        nguoi_dg = "AI Auto"  # Defaulted as requested
+        
+        api_key = config.get("openai_api_key")
+        webhook_url = config.get("apps_script_url")
+
+        # Validations
         if not self.selected_folder:
             messagebox.showwarning("Thiếu thông tin", "Vui lòng chọn thư mục chứa CV.")
             return
-
-        # Get API Key
-        api_key = self.api_key_entry.get().strip()
         if not api_key:
-            # Check env
-            if not os.getenv("OPENAI_API_KEY"):
-                 messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập API Key để tiếp tục!")
-                 return
-            api_key = None # Let AIClient load from env
+            messagebox.showwarning("Thiếu cấu hình", "Vui lòng vào Cài đặt để nhập OpenAI API Key.")
+            return
+        if not webhook_url:
+            if not messagebox.askyesno("Thiếu cấu hình", "Chưa có Link Apps Script. Kết quả sẽ không được lưu vào Sheets. Tiếp tục?"):
+                return
 
-        # Prepare UI
+        # Reset UI
         self.is_processing = True
-        self.start_btn.configure(state="disabled", text="Đang xử lý...")
+        self.results_data = []
+        self.start_btn.configure(state="disabled", text="⏳ Đang xử lý...")
         self.progress_bar.set(0)
-        
-        # Clear old results
-        for widget in self.result_scroll.winfo_children():
-            widget.destroy()
+        self._set_status("Bắt đầu xử lý danh sách CV...")
+        for w in self.result_scroll.winfo_children():
+            w.destroy()
 
-        # Start Thread
-        t = threading.Thread(target=self._process_files, args=(jd_text, api_key))
+        # Background thread
+        t = threading.Thread(
+            target=self._process_files,
+            args=(jd_text, webhook_url, nguon, nguoi_dg, api_key)
+        )
+        t.daemon = True
         t.start()
 
-    def _process_files(self, jd_text, api_key):
-        files = [f for f in os.listdir(self.selected_folder) 
-                 if f.lower().endswith(('.pdf', '.docx', '.txt', '.png', '.jpg', '.jpeg'))]
-        
-        total_files = len(files)
-        if total_files == 0:
-            self.after(0, lambda: messagebox.showinfo("Thông báo", "Không tìm thấy file CV nào hợp lệ."))
+    def _process_files(self, jd_text, webhook_url, nguon, nguoi_dg, api_key):
+        extensions = ('.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg')
+        files = [
+            os.path.join(self.selected_folder, f)
+            for f in os.listdir(self.selected_folder)
+            if f.lower().endswith(extensions)
+        ]
+        total = len(files)
+
+        if total == 0:
+            self.after(0, lambda: messagebox.showinfo("Thông báo", "Không tìm thấy file CV nào."))
             self.after(0, self._reset_ui)
             return
 
-        for idx, filename in enumerate(files):
-            filepath = os.path.join(self.selected_folder, filename)
-            
-            # Call Core Logic
-            result = self.scorer.evaluate_cv(filepath, jd_text, api_key=api_key)
-            
-            # Prepare data for UI
-            display_data = {
-                "name": result.get("candidate_name", filename),
-                "score": result.get("score", 0),
-                "summary": result.get("summary", "Không có nhận xét"),
-                "status": result.get("recommendation", "Unknown"),
-                "matching_skills": result.get("matching_skills", []),
-                "missing_skills": result.get("missing_skills", []),
-                "raw_result": result # Keep complete data for details
-            }
-            
-            # Update UI safely
-            self.after(0, lambda d=display_data: self._add_result_row(d))
-            self.after(0, lambda p=(idx + 1) / total_files: self.progress_bar.set(p))
+        def on_progress(idx, tot, result):
+            pct = idx / tot
+            info = result.get("row_appended", {})
+            name = info.get("ten_ung_vien", "N/A")
+            status_icon = "✅" if result.get("success") else "⚠️"
+            self.after(0, lambda: self.progress_bar.set(pct))
+            self.after(0, lambda: self.progress_label.configure(text=f"{idx}/{tot}"))
+            self.after(0, lambda: self._set_status(f"[{idx}/{tot}] {status_icon} {name}"))
+            self.after(0, lambda d=result: self._add_result_row(d))
 
-        self.after(0, lambda: messagebox.showinfo("Hoàn tất", f"Đã chấm xong {total_files} hồ sơ."))
+        # We pass sheet_id=webhook_url because process_cv_to_sheets now uses apps_script_caller 
+        # which reads URL from config, but we pass it anyway for consistency.
+        results = batch_process(
+            cv_files=files,
+            sheet_id=webhook_url,
+            jd_text=jd_text,
+            nguon=nguon,
+            nguoi_danh_gia=nguoi_dg,
+            api_key=api_key,
+            on_progress=on_progress,
+        )
+        self.results_data = results
+        self.last_sheet_url = next((r.get("sheet_url") for r in results if r.get("sheet_url")), None)
+
+        success_count = sum(1 for r in results if r.get("success"))
+        msg = f"Hoàn tất {total} hồ sơ.\n✅ Thành công: {success_count}/{total}"
+        self.after(0, lambda: messagebox.showinfo("Hoàn tất 🎉", msg))
         self.after(0, self._reset_ui)
 
-    def _get_score_color(self, score):
-        if score >= 75:
-            return "#2ecc71" # Green
-        elif score >= 50:
-            return "#f1c40f" # Yellow
-        else:
-            return "#e74c3c" # Red
+    def _add_result_row(self, data: dict):
+        info = data.get("row_appended", {})
+        score = data.get("score", 0)
+        success = data.get("success", False)
+        name = info.get("ten_ung_vien", "N/A")
+        trang_thai = info.get("trang_thai", "FAIL")
 
-    def _add_result_row(self, data):
-        """Thêm một dòng kết quả vào bảng với giao diện chi tiết"""
         row_frame = ctk.CTkFrame(self.result_scroll, fg_color=("#2b2b2b", "#333333"))
-        row_frame.pack(fill="x", pady=5, padx=5)
-        
-        # 1. Avatar (Initials)
-        initials = "".join([n[0] for n in data["name"].split()[:2]]).upper()
-        avatar = ctk.CTkLabel(row_frame, text=initials, width=40, height=40, 
-                            fg_color="gray", corner_radius=20)
-        avatar.pack(side="left", padx=10, pady=10)
+        row_frame.pack(fill="x", pady=4, padx=5)
 
-        # 2. View Details Button (Right) - Pack FIRST to reserve space
-        detail_btn = ctk.CTkButton(row_frame, text="📄 Chi tiết", width=80, height=30,
-                                 fg_color="#34495e", hover_color="#2c3e50",
-                                 command=lambda: self.show_details_popup(data))
-        detail_btn.pack(side="right", padx=10)
+        # Avatar
+        initials = "".join([n[0] for n in name.split()[:2]]).upper() if name != "N/A" and "Lỗi" not in name else "?"
+        ctk.CTkLabel(row_frame, text=initials, width=40, height=40, fg_color="gray", corner_radius=20).pack(side="left", padx=10, pady=10)
 
-        # 3. Score Badge (Right) - Pack SECOND to reserve space
-        score_val = data["score"]
-        score_color = self._get_score_color(score_val)
-        
+        # Nút Chi tiết
+        detail_btn = ctk.CTkButton(
+            row_frame, text="📋 Chi tiết",
+            width=90, height=34,
+            fg_color="#1a73e8", hover_color="#1558b0",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=lambda d=data: DetailPopup(self, d)
+        )
+        detail_btn.pack(side="right", padx=10, pady=10)
+
+        # Score
+        score_color = self._get_score_color(score)
         score_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
         score_frame.pack(side="right", padx=10)
-        
-        score_label = ctk.CTkLabel(score_frame, text=f"{score_val}", 
-                                 font=ctk.CTkFont(size=24, weight="bold"), text_color=score_color)
-        score_label.pack(anchor="e")
-        
-        score_sub = ctk.CTkLabel(score_frame, text="/100", font=ctk.CTkFont(size=10), text_color="gray")
-        score_sub.pack(anchor="e")
+        ctk.CTkLabel(score_frame, text=str(score), font=ctk.CTkFont(size=22, weight="bold"), text_color=score_color).pack(anchor="e")
+        ctk.CTkLabel(score_frame, text="/100", font=ctk.CTkFont(size=9), text_color="gray").pack(anchor="e")
 
-        # 4. Info (Name + Status) - Pack LAST to fill remaining space
+        # Info
         info_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
         info_frame.pack(side="left", fill="both", expand=True, padx=5)
-        
-        name_label = ctk.CTkLabel(info_frame, text=data["name"], 
-                                font=ctk.CTkFont(size=14, weight="bold"), anchor="w")
-        name_label.pack(fill="x")
-        
-        # Display Summary instead of just Status for better context, truncated
-        summary_text = data["summary"].split('\n')[0][:100] + "..." if len(data["summary"]) > 100 else data["summary"].split('\n')[0]
-        status_label = ctk.CTkLabel(info_frame, text=f"• {summary_text}", 
-                                  font=ctk.CTkFont(size=12), text_color="silver", anchor="w")
-        status_label.pack(fill="x")
-    def show_details_popup(self, data):
-        """Hiển thị cửa sổ chi tiết (Toplevel)"""
-        toplevel = ctk.CTkToplevel(self)
-        toplevel.title(f"Chi tiết: {data['name']}")
-        toplevel.geometry("600x500")
-        toplevel.attributes("-topmost", True) # Giữ cửa sổ luôn ở trên
+        ctk.CTkLabel(info_frame, text=name, font=ctk.CTkFont(size=14, weight="bold"), anchor="w").pack(fill="x")
+        detail_text = f"{trang_thai}  |  {info.get('vi_tri','N/A')}  |  {info.get('khu_vuc','N/A')}"
+        ctk.CTkLabel(info_frame, text=detail_text, font=ctk.CTkFont(size=11), text_color="silver", anchor="w").pack(fill="x")
 
-        # Header
-        header_frame = ctk.CTkFrame(toplevel, fg_color="transparent")
-        header_frame.pack(fill="x", padx=20, pady=20)
+    def open_sheet(self):
+        url = getattr(self, "last_sheet_url", None)
+        if not url:
+            config = ConfigManager.load_config()
+            url = config.get("apps_script_url")
         
-        name_lbl = ctk.CTkLabel(header_frame, text=data["name"], font=ctk.CTkFont(size=20, weight="bold"))
-        name_lbl.pack(side="left")
-        
-        score_color = self._get_score_color(data["score"])
-        score_lbl = ctk.CTkLabel(header_frame, text=f"Score: {data['score']}/100", 
-                               font=ctk.CTkFont(size=20, weight="bold"), text_color=score_color)
-        score_lbl.pack(side="right")
+        if url and "macros/s/" not in url:
+             webbrowser.open(url)
+        elif url:
+             # If it's the webhook URL, we can't really "open" a sheet from it easily without a separate config for Sheet ID
+             # But usually the user just wants the final sheet URL returned from the script.
+             messagebox.showinfo("Thông báo", "Vui lòng chạy xử lý để lấy URL Sheet kết quả!")
+        else:
+            messagebox.showinfo("Thông báo", "Chưa có Google Sheet URL để mở.")
 
-        # Content - Scrollable
-        scroll = ctk.CTkScrollableFrame(toplevel)
-        scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+    def _get_score_color(self, score: int) -> str:
+        if score >= 75: return "#2ecc71"
+        if score >= 50: return "#f1c40f"
+        return "#e74c3c"
 
-        # Section: Summary
-        ctk.CTkLabel(scroll, text="NHẬN XÉT TỔNG QUAN:", font=ctk.CTkFont(weight="bold"), anchor="w").pack(fill="x", pady=(10, 5))
-        summary_box = ctk.CTkTextbox(scroll, height=100)
-        summary_box.pack(fill="x", pady=5)
-        summary_box.insert("0.0", data["summary"])
-        summary_box.configure(state="disabled") # Read-only
-
-        # Section: Matching Skills
-        ctk.CTkLabel(scroll, text="KỸ NĂNG PHÙ HỢP ✅:", font=ctk.CTkFont(weight="bold"), text_color="#2ecc71", anchor="w").pack(fill="x", pady=(15, 5))
-        skills = data.get("matching_skills", [])
-        skills_text = "\n".join([f"- {s}" for s in skills]) if skills else "Không tìm thấy kỹ năng phù hợp."
-        
-        skills_box = ctk.CTkTextbox(scroll, height=80)
-        skills_box.pack(fill="x", pady=5)
-        skills_box.insert("0.0", skills_text)
-        skills_box.configure(state="disabled")
-
-        # Section: Missing Skills
-        ctk.CTkLabel(scroll, text="KỸ NĂNG CÒN THIẾU ⚠️:", font=ctk.CTkFont(weight="bold"), text_color="#e74c3c", anchor="w").pack(fill="x", pady=(15, 5))
-        missing = data.get("missing_skills", [])
-        missing_text = "\n".join([f"- {s}" for s in missing]) if missing else "Không phát hiện thiếu kỹ năng quan trọng."
-        
-        missing_box = ctk.CTkTextbox(scroll, height=80)
-        missing_box.pack(fill="x", pady=5)
-        missing_box.insert("0.0", missing_text)
-        missing_box.configure(state="disabled")
-        
-        # Close Button
-        ctk.CTkButton(toplevel, text="Đóng", command=toplevel.destroy, fg_color="gray").pack(pady=10)
+    def _set_status(self, msg: str):
+        self.status_label.configure(text=msg)
 
     def _reset_ui(self):
         self.is_processing = False
-        self.start_btn.configure(state="normal", text="BẮT ĐẦU CHẤM ĐIỂM")
+        self.start_btn.configure(state="normal", text="🚀 BẮT ĐẦU CHẤM & GHI SHEETS")
+
 
 if __name__ == "__main__":
     app = CVScorerApp()

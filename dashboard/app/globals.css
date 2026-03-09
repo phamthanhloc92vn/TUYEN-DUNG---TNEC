@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #005088;
+  --accent: #3b82f6;
+  --cyan: #06b6d4;
+}
+
+/* Glassmorphism base */
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 24px rgba(0, 80, 136, 0.08);
+}
+
+.glass-dark {
+  background: rgba(0, 80, 136, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.font-heading {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,80,136,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,80,136,0.4); }
+
+/* Badge */
+.badge-pass { @apply bg-emerald-100 text-emerald-700 border border-emerald-200; }
+.badge-fail { @apply bg-red-100 text-red-600 border border-red-200; }
+.badge-wait { @apply bg-gray-100 text-gray-600 border border-gray-200; }
+.badge-dat  { @apply bg-blue-100 text-blue-700 border border-blue-200; }
