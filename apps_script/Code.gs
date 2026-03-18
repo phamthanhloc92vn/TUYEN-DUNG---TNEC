@@ -22,6 +22,9 @@ var TAB_VONG1     = "Vòng 1";
 var TAB_VONG2     = "Vòng 2";
 var TAB_THUVIEC   = "Thử việc";
 
+// ── Sheet Văn Thư (Spreadsheet riêng) ──────────────────────────────────────
+var VAN_THU_SS_ID = "1iqwIxPO4rF_As0B6LMJJV2ZwhU2BIU-PFaUgxlmGbJY";
+
 var COL_TRANGTHAI = 14;  // Cột N – Tổng Hợp (1-indexed, sau khi thêm 3 cột mới)
 var COL_KETQUA_V1 = 17;  // Cột Q – Vòng 1
 var COL_KETQUA_V2 = 18;  // Cột R – Vòng 2
@@ -50,7 +53,8 @@ var HEADER_THUVIEC = [
 // URL params:
 //   ?action=getData&sheet=Tổng Hợp   → trả toàn bộ rows (JSON array of objects)
 //   ?action=getStats                  → trả KPI tổng hợp
-//   (no auth needed – sheet must be accessible)
+//   ?action=getVanThuStats            → trả KPI công văn (sheet VanThu riêng)
+//   ?action=getVanThuData&sheet=...   → trả dữ liệu 1 tab công văn
 // ══════════════════════════════════════════════════════════════════════════
 function doGet(e) {
   var params = e ? e.parameter : {};
@@ -84,12 +88,50 @@ function doGet(e) {
       return response(_buildStats(ss));
     }
 
+    // ── Văn Thư: thống kê KPI ──────────────────────────────────────────
+    if (action === "getVanThuStats") {
+      try {
+        var vtSs = SpreadsheetApp.openById(VAN_THU_SS_ID);
+        return response(_buildVanThuStats(vtSs));
+      } catch (err) {
+        return response({ success: false, error: "Không mở được sheet Văn Thư: " + err.message });
+      }
+    }
+
+    // ── Văn Thư: dữ liệu 1 tab ────────────────────────────────────────
+    if (action === "getVanThuData") {
+      try {
+        var vtSs2    = SpreadsheetApp.openById(VAN_THU_SS_ID);
+        var tabName  = params.sheet || "Công văn đến";
+        var vtWs     = _getSheet(vtSs2, tabName);
+        if (!vtWs) return response({ success: false, error: "Tab không tồn tại: " + tabName });
+
+        var vtRows    = vtWs.getDataRange().getValues();
+        var vtHeaders = vtRows[0];
+        var vtData    = [];
+        for (var vi = 1; vi < vtRows.length; vi++) {
+          var vtObj = {}; var hasData = false;
+          for (var vj = 0; vj < vtHeaders.length; vj++) {
+            var vval = vtRows[vi][vj];
+            if (vval instanceof Date) vval = Utilities.formatDate(vval, Session.getScriptTimeZone(), "dd/MM/yyyy");
+            vtObj[vtHeaders[vj]] = vval;
+            if (vval !== "" && vval !== null) hasData = true;
+          }
+          if (hasData) vtData.push(vtObj);
+        }
+        return response({ success: true, sheet: tabName, total: vtData.length, data: vtData });
+      } catch (err) {
+        return response({ success: false, error: "Lỗi đọc Văn Thư: " + err.message });
+      }
+    }
+
     return response({ status: "OK", message: "Tuyendung-Report V2 API Ready" });
 
   } catch (err) {
     return response({ success: false, error: err.message });
   }
 }
+
 
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -377,3 +419,29 @@ function response(d) {
   return ContentService.createTextOutput(JSON.stringify(d)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// ── Văn Thư helpers ────────────────────────────────────────────────────────
+function _vtCountRows(ss, tabName) {
+  var ws = _getSheet(ss, tabName);
+  if (!ws || ws.getLastRow() <= 1) return 0;
+  var vals = ws.getRange(2, 1, ws.getLastRow() - 1, 1).getValues();
+  var count = 0;
+  for (var i = 0; i < vals.length; i++) {
+    if (vals[i][0] !== "" && vals[i][0] !== null) count++;
+  }
+  return count;
+}
+
+function _buildVanThuStats(ss) {
+  var den  = _vtCountRows(ss, "Công văn đến");
+  var di1  = _vtCountRows(ss, "Công văn đi 1");
+  var di2  = _vtCountRows(ss, "Công văn đi 2");
+  var hdqt = _vtCountRows(ss, "Công văn đi 1 - HĐQT");
+  return {
+    success:       true,
+    cong_van_den:  den,
+    cong_van_di_1: di1,
+    cong_van_di_2: di2,
+    cong_van_hdqt: hdqt,
+    tong_cong_van: den + di1 + di2 + hdqt
+  };
+}

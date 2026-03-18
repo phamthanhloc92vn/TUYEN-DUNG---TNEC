@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Building2, Settings, ChevronDown, ChevronRight,
     List, Users, Briefcase, Wrench, FolderKanban,
     ClipboardList, Package, ShieldAlert, UserCheck,
-    UserCog, Calculator, Megaphone
+    UserCog, Calculator, Megaphone, FileText, MailOpen, Send
 } from "lucide-react";
 
 // ─── 9 Phòng Ban ─────────────────────────────────────────────────────────────
@@ -30,8 +30,20 @@ const DEPARTMENTS = [
                     { label: "Thử Việc", href: "/thu-viec", icon: Briefcase },
                 ],
             },
-            // Tương lai: C&B, Hành Chính, Văn Thư...
+            {
+                id: "van-thu",
+                label: "Văn Thư",
+                icon: FileText,
+                children: [
+                    { label: "Tổng Quan", href: "/van-thu", icon: FileText },
+                    { label: "Công Văn Đến", href: "/van-thu/cong-van-den", icon: MailOpen },
+                    { label: "Công Văn Đi 1", href: "/van-thu/cong-van-di-1", icon: Send },
+                    { label: "Công Văn Đi 2", href: "/van-thu/cong-van-di-2", icon: Send },
+                    { label: "Công Văn HĐQT", href: "/van-thu/cong-van-hdqt", icon: Send },
+                ],
+            },
         ],
+        // Tương lai: C&B, Hành Chính...
     },
     { id: "ky-thuat", label: "Kỹ Thuật", icon: Wrench },
     { id: "du-an", label: "Dự Án", icon: FolderKanban },
@@ -49,8 +61,10 @@ export default function Sidebar() {
     const [openSection, setOpenSection] = useState<string | null>("tuyen-dung");
 
     const recruitmentPaths = ["/tong-hop", "/vong-1", "/vong-2", "/thu-viec"];
-    const isHCNSActive = recruitmentPaths.some(p => pathname.startsWith(p));
+    const vanThuPaths = ["/van-thu"];
+    const isHCNSActive = [...recruitmentPaths, ...vanThuPaths].some(p => pathname.startsWith(p));
     const isRecruitActive = recruitmentPaths.some(p => pathname.startsWith(p));
+    const isVanThuActive = vanThuPaths.some(p => pathname.startsWith(p));
 
     return (
         <aside className="glass-dark w-60 min-h-screen flex flex-col fixed left-0 top-0 z-40">
@@ -121,7 +135,7 @@ export default function Sidebar() {
                                                     <button
                                                         onClick={() => setOpenSection(isSectionOpen ? null : section.id)}
                                                         className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all text-xs font-semibold
-                              ${isRecruitActive && section.id === "tuyen-dung"
+                              ${(isRecruitActive && section.id === "tuyen-dung") || (isVanThuActive && section.id === "van-thu")
                                                                 ? "text-cyan-300 bg-cyan-400/10"
                                                                 : "text-slate-200 hover:text-white hover:bg-white/8"}`}>
                                                         <SIcon size={13} />

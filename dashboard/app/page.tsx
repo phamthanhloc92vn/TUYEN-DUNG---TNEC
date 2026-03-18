@@ -9,10 +9,12 @@ import {
 } from "recharts";
 import {
   Users, CheckCircle, Briefcase, Building2,
-  TrendingUp, RefreshCw, Plus, Pencil, Trash2, Search, FileCheck
+  TrendingUp, RefreshCw, Plus, Pencil, Trash2, Search, FileCheck,
+  MailOpen, Send, FileText
 } from "lucide-react";
-import { fetchStats, fetchCandidates, deleteCandidate, type Stats, type Candidate } from "@/lib/api";
+import { fetchStats, fetchCandidates, deleteCandidate, fetchVanThuStats, type Stats, type Candidate, type VanThuStats } from "@/lib/api";
 import AddCandidateModal from "@/components/AddCandidateModal";
+import Link from "next/link";
 
 // ─── KPI Card ───────────────────────────────────────────────────────────────
 function KpiCard({ icon: Icon, label, value, trend, color }: {
@@ -50,6 +52,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [vanThuStats, setVanThuStats] = useState<VanThuStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterDept, setFilterDept] = useState("all");
@@ -67,9 +70,10 @@ export default function DashboardPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, c] = await Promise.all([fetchStats(), fetchCandidates()]);
+      const [s, c, vt] = await Promise.all([fetchStats(), fetchCandidates(), fetchVanThuStats()]);
       setStats(s);
       setCandidates(c);
+      setVanThuStats(vt);
     } catch (e) {
       console.error(e);
     } finally {
@@ -175,6 +179,43 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               ) : <div className="h-60 flex items-center justify-center text-slate-400 text-sm">Chưa có dữ liệu</div>}
             </div>
+          </div>
+
+          {/* ── Văn Thư Section ── */}
+          <div className="glass rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <FileText size={18} className="text-[#005088]" />
+                <h2 className="font-heading font-semibold text-[#005088]">Hành Chính Nhân Sự – Văn Thư</h2>
+              </div>
+              <Link href="/van-thu" className="text-xs text-[#005088] hover:underline font-medium flex items-center gap-1">
+                Xem chi tiết →
+              </Link>
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { icon: MailOpen, label: "Công Văn Đến", value: vanThuStats?.cong_van_den ?? "–", color: "bg-emerald-500", href: "/van-thu/cong-van-den" },
+                { icon: Send, label: "Công Văn Đi 1", value: vanThuStats?.cong_van_di_1 ?? "–", color: "bg-violet-500", href: "/van-thu/cong-van-di-1" },
+                { icon: Send, label: "Công Văn Đi 2", value: vanThuStats?.cong_van_di_2 ?? "–", color: "bg-cyan-500", href: "/van-thu/cong-van-di-2" },
+                { icon: FileText, label: "Công Văn HĐQT", value: vanThuStats?.cong_van_hdqt ?? "–", color: "bg-rose-500", href: "/van-thu/cong-van-hdqt" },
+              ].map(({ icon: Icon, label, value, color, href }) => (
+                <Link key={label} href={href}
+                  className="flex items-center gap-4 p-4 bg-white/50 rounded-xl border border-slate-100 hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} shrink-0`}>
+                    <Icon size={16} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">{label}</p>
+                    <p className="font-heading font-bold text-2xl text-[#005088] leading-tight">{value}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            {!vanThuStats?.success && (
+              <p className="text-center text-slate-400 text-xs mt-3 italic">
+                ⚠️ Cần redeploy Apps Script để lấy dữ liệu Văn Thư
+              </p>
+            )}
           </div>
 
           {/* ── Filters + Table ── */}

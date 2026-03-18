@@ -1,13 +1,26 @@
-JOB DESCRIPTION: SENIOR PYTHON DEVELOPER
+VỊ TRÍ: TRỢ LÝ GIÁM ĐỐC
+PHÒNG: Phòng Trợ Lý
+LĨNH VỰC: Xây dựng cầu đường – Hạ tầng giao thông
 
-Requirements:
-- 5+ years of experience with Python (3.8+).
-- Strong knowledge of standard library and file I/O.
-- Experience with AI/LLM integration (OpenAI API).
-- Familiar with GUI development (Tkinter/PyQt).
-- Good understanding of Software Architecture (MVC).
+YÊU CẦU TUYỂN DỤNG:
+- Tốt nghiệp CĐ/ĐH chuyên ngành Xây dựng cầu đường, Giao thông, Hạ tầng, hoặc ngành liên quan.
+- Thành thạo các phần mềm văn phòng (Word, Excel, PowerPoint).
+- Có khả năng ứng dụng các công cụ AI (ChatGPT, Copilot, Gemini...) và các phần mềm hỗ trợ công việc.
+- Có kỹ năng tổng hợp báo cáo, phân tích dữ liệu và quản lý công việc.
+- Kỹ năng giao tiếp, phối hợp công việc và làm việc nhóm tốt.
+- Cẩn thận, trách nhiệm, chủ động và có khả năng chịu áp lực công việc.
 
-Responsibilities:
-- Build desktop applications for HR automation.
-- Optimize PDF text extraction logic.
-- Ensure clean code and maintainability.
+ƯU TIÊN ỨNG VIÊN:
+- Nữ, độ tuổi từ 23 – 35.
+- Có kinh nghiệm trợ lý/thư ký Ban Giám đốc hoặc quản lý dự án xây dựng.
+- Có khả năng giao tiếp tiếng Anh.
+- Có thể đi công tác khi cần thiết.
+
+MÔ TẢ CÔNG VIỆC:
+- Hỗ trợ Giám đốc trong quản lý, điều hành và theo dõi tiến độ các dự án xây dựng hạ tầng.
+- Soạn thảo, xử lý văn bản, công văn, tờ trình, báo cáo theo yêu cầu.
+- Tổng hợp báo cáo định kỳ (tuần/tháng/quý) từ các phòng ban và công trường.
+- Sắp xếp lịch họp, công tác, tiếp khách cho Ban Giám đốc.
+- Điều phối thông tin giữa các phòng ban nội bộ và đối tác bên ngoài.
+- Theo dõi, đôn đốc thực hiện các chỉ đạo, quyết định của Giám đốc.
+- Lưu trữ, quản lý hồ sơ, tài liệu liên quan đến dự án và công ty.

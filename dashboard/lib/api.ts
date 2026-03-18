@@ -81,3 +81,47 @@ export async function updateCandidate(
 export async function deleteCandidate(stt: number, sheet = "Tổng Hợp"): Promise<unknown> {
   return postScript({ action: "delete", stt, sheet });
 }
+
+// ── VĂN THƯ ─────────────────────────────────────────────────────────────────
+
+export type CongVan = {
+  STT: number | string;
+  "Ngày/Tháng": string;
+  "Số văn bản": string;
+  "Ngày văn bản": string;
+  "Tóm nội dung chính": string;
+  "Đơn vị gửi đến"?: string;
+  "Đơn vị gửi đi"?: string;
+  "Người nhận": string;
+  "Bản Scan": string;
+  "Bản gốc": string;
+  "Tên file CV"?: string;
+  "Tên File CV"?: string;
+  [key: string]: unknown;
+};
+
+export type VanThuStats = {
+  success: boolean;
+  cong_van_den: number;
+  cong_van_di_1: number;
+  cong_van_di_2: number;
+  cong_van_hdqt: number;
+  tong_cong_van: number;
+};
+
+export async function fetchCongVan(sheet: string): Promise<CongVan[]> {
+  if (!SCRIPT_URL) return [];
+  const url = `${SCRIPT_URL}?action=getVanThuData&sheet=${encodeURIComponent(sheet)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  const json = await res.json();
+  return json.data || [];
+}
+
+export async function fetchVanThuStats(): Promise<VanThuStats> {
+  const fallback: VanThuStats = { success: false, cong_van_den: 0, cong_van_di_1: 0, cong_van_di_2: 0, cong_van_hdqt: 0, tong_cong_van: 0 };
+  if (!SCRIPT_URL) return fallback;
+  const url = `${SCRIPT_URL}?action=getVanThuStats`;
+  const res = await fetch(url, { cache: "no-store" });
+  const json = await res.json();
+  return json;
+}

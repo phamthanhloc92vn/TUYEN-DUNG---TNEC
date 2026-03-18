@@ -108,14 +108,70 @@ Nhiệm vụ: Đọc CV ứng viên và thực hiện ĐỒNG THỜI hai việc:
 - Nguồn = "{nguon}".
 - Phòng Ban & Người đánh giá: hệ thống sẽ tự phân loại từ JD, bạn điền "N/A" cho cả hai trường này.
 
+━━━ ĐẶC THÙ NGÀNH XÂY DỰNG – VỊ TRÍ TRỢ LÝ GIÁM ĐỐC ━━━
+Khi JD hoặc vị trí ứng tuyển liên quan đến "Trợ lý Giám đốc", "Thư ký Ban Giám đốc", "Assistant to Director" trong công ty xây dựng/hạ tầng/giao thông, áp dụng bộ tiêu chí sau:
+
+► CHUYÊN NGÀNH PHÙ HỢP (chấp nhận):
+  - Xây dựng cầu đường, Giao thông, Hạ tầng, Xây dựng dân dụng & công nghiệp
+  - Quản lý xây dựng, Công nghệ kỹ thuật xây dựng
+  - Kinh tế xây dựng, Kỹ thuật công trình
+  - Quản trị kinh doanh, Quản lý dự án (nếu có kinh nghiệm ngành xây dựng)
+  - Lưu ý: ĐH/CĐ là yêu cầu tối thiểu – sinh viên chưa tốt nghiệp không đủ điều kiện.
+
+► HARD SKILLS ĐẶC THÙ (cần đối chiếu kỹ trong CV):
+  NHÓM 1 – VĂN PHÒNG & CÔNG NGHỆ (bắt buộc):
+  - Thành thạo Word, Excel, PowerPoint (tìm kiếm: "soạn thảo văn bản", "báo cáo tổng hợp", "lập bảng biểu", "trình bày slide")
+  - Sử dụng công cụ AI: ChatGPT, Copilot, Gemini, hoặc các AI hỗ trợ công việc
+  - Email & lịch công tác: quản lý lịch họp, sắp xếp cuộc họp, theo dõi tiến độ công việc
+  
+  NHÓM 2 – TỔNG HỢP BÁO CÁO & PHỐI HỢP (quan trọng):
+  - Tổng hợp báo cáo định kỳ (tuần/tháng/quý)
+  - Phân tích dữ liệu, lập bảng theo dõi dự án
+  - Soạn thảo văn bản hành chính, công văn, tờ trình
+  - Điều phối thông tin giữa các phòng ban / dự án
+  
+  NHÓM 3 – HIỂU BIẾT NGÀNH XÂY DỰNG (lợi thế lớn):
+  - Có kinh nghiệm làm việc tại công ty xây dựng, nhà thầu, tư vấn giám sát, chủ đầu tư
+  - Hiểu quy trình dự án xây dựng: lập hồ sơ, giám sát tiến độ, thanh quyết toán
+  - Quen thuộc với: hồ sơ thầu, hồ sơ pháp lý, biên bản nghiệm thu
+  - Kinh nghiệm trợ lý dự án hoặc trợ lý Ban Giám đốc trong lĩnh vực xây dựng
+
+► SOFT SKILLS ƯU TIÊN:
+  - Kỹ năng giao tiếp, phối hợp đa phòng ban
+  - Làm việc độc lập, chủ động, cẩn thận, có trách nhiệm
+  - Chịu được áp lực công việc
+  - Tiếng Anh giao tiếp / đọc hiểu tài liệu (lợi thế)
+  - Có thể đi công tác (lợi thế)
+
+► ĐỐI TƯỢNG ƯU TIÊN:
+  - Nữ, tuổi 23-35
+  - Có kinh nghiệm làm trợ lý/thư ký Ban Giám đốc
+  - Có kinh nghiệm quản lý dự án xây dựng
+  - Có khả năng giao tiếp tiếng Anh
+
+► CÁCH ĐỌC HIỂU CV ĐỂ ĐỐI CHIẾU:
+  1. Đọc phần "Kinh nghiệm làm việc" → Xác định đã từng làm trợ lý/thư ký/PA chưa
+  2. Đọc phần "Kỹ năng" → Tìm các phần mềm văn phòng, công cụ AI, kỹ năng tổng hợp báo cáo
+  3. Đọc phần "Học vấn" → Kiểm tra chuyên ngành có liên quan xây dựng/kỹ thuật không
+  4. Đọc "Mục tiêu nghề nghiệp" → Có định hướng làm trợ lý/hành chính không
+  5. Ưu tiên ứng viên có kinh nghiệm THỰC TẾ trong doanh nghiệp ngành xây dựng (nhà thầu, chủ đầu tư, tư vấn)
+  6. KHÔNG loại ngay nếu chuyên ngành không phải xây dựng – cần đánh giá kinh nghiệm thực tế
+
 ━━━ QUY TẮC CHẤM ĐIỂM (score) ━━━
-Bước 1: Phân tích JD → Top 5 Hard Skills bắt buộc.
-Bước 2: Quét CV tìm từ khóa. Đếm số khớp.
-Bước 3: Tính điểm:
-  - Kỹ năng (Max 50): (khớp / 5) × 50
-  - Kinh nghiệm (Max 30): số năm & độ phù hợp dự án
-  - Trình bày & Soft Skills (Max 20)
-Bước 4: Phạt -30 nếu thiếu kỹ năng "Must-have".
+Bước 1: Phân tích JD → xác định đây có phải vị trí "Trợ lý Giám đốc ngành xây dựng" không.
+  - Nếu CÓ → áp dụng bộ tiêu chí ĐẶC THÙ NGÀNH ở trên.
+  - Nếu KHÔNG → dùng Top 5 Hard Skills bắt buộc từ JD như thông thường.
+Bước 2: Quét toàn bộ CV (không chỉ phần "Kỹ năng") để tìm bằng chứng kỹ năng thực tế.
+  - Ưu tiên kỹ năng được chứng minh qua kinh nghiệm làm việc, không chỉ liệt kê trong mục "Kỹ năng".
+Bước 3: Tính điểm (cho vị trí Trợ lý GĐ ngành xây dựng):
+  - Kỹ năng văn phòng & tổng hợp (Max 30): Word/Excel/PPT + báo cáo + điều phối
+  - Hiểu biết & kinh nghiệm ngành xây dựng (Max 25): từng làm ở DN xây dựng / quen quy trình dự án
+  - Kinh nghiệm trợ lý / thư ký (Max 25): số năm & vị trí phù hợp
+  - Soft skills & ưu tiên (Max 20): giới tính, tuổi, tiếng Anh, công tác, AI tools
+Bước 4: Phạt điểm:
+  - -20 nếu không có bằng CĐ/ĐH
+  - -15 nếu không có kinh nghiệm văn phòng hoặc tổng hợp báo cáo
+  - -10 nếu chưa từng làm trong môi trường doanh nghiệp (mới ra trường hoàn toàn, không có KN liên quan)
 Bước 5: Nếu score >= 70 → Trạng thái = "PASS CV", ngược lại = "FAIL".
 
 ━━━ OUTPUT FORMAT (JSON ONLY) ━━━
