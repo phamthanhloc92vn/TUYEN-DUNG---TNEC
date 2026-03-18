@@ -11,7 +11,10 @@
   "dependencies": {
     "date-fns": "^4.1.0",
     "lucide-react": "^0.577.0",
+    "mammoth": "^1.12.0",
     "next": "16.1.6",
+    "openai": "^6.32.0",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0"

@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Building2, Settings, ChevronDown, ChevronRight,
     List, Users, Briefcase, Wrench, FolderKanban,
     ClipboardList, Package, ShieldAlert, UserCheck,
-    UserCog, Calculator, Megaphone, FileText, MailOpen, Send
+    UserCog, Calculator, Megaphone, FileText, MailOpen, Send, BrainCircuit
 } from "lucide-react";
 
 // ─── 9 Phòng Ban ─────────────────────────────────────────────────────────────
@@ -97,6 +97,15 @@ export default function Sidebar() {
             ${pathname === "/phong-ban" ? "bg-cyan-400/20 text-cyan-300 border border-cyan-400/30" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}>
                     <Building2 size={16} />
                     <span>Phòng Ban</span>
+                </Link>
+
+                {/* Chấm CV AI */}
+                <Link href="/cham-cv"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium
+            ${pathname === "/cham-cv" ? "bg-cyan-400/20 text-cyan-300 border border-cyan-400/30" : "text-slate-200 hover:bg-white/10 hover:text-white"}`}>
+                    <BrainCircuit size={16} />
+                    <span>Chấm CV – AI</span>
+                    <span className="ml-auto text-[9px] bg-cyan-400/20 text-cyan-300 px-1.5 py-0.5 rounded-full font-semibold">NEW</span>
                 </Link>
 
                 {/* Divider */}
